@@ -2,17 +2,18 @@ public class BookMyStay {
 
     public static void main(String[] args) {
 
-        BookingRequestQueue queue = new BookingRequestQueue();
 
-        Reservation r1 = new Reservation("Alice", "Single");
-        Reservation r2 = new Reservation("Bob", "Double");
-        Reservation r3 = new Reservation("Charlie", "Suite");
+            RoomInventory inventory = new RoomInventory();
+            BookingRequestQueue queue = new BookingRequestQueue();
 
-        queue.addRequest(r1);
-        queue.addRequest(r2);
-        queue.addRequest(r3);
+            queue.addRequest(new Reservation("Alice","Single"));
+            queue.addRequest(new Reservation("Bob","Double"));
+            queue.addRequest(new Reservation("Charlie","Suite"));
+            queue.addRequest(new Reservation("David","Single"));
 
-        queue.showRequests();
+            RoomAllocationService service = new RoomAllocationService();
 
-    }
+            service.processBookings(queue, inventory);
+
+        }
 }

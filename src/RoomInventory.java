@@ -1,18 +1,22 @@
 import java.util.HashMap;
 
-class RoomInventory {
+public class RoomInventory {
 
-    HashMap<String,Integer> inventory;
+    private HashMap<String, Integer> inventory;
 
-    RoomInventory() {
+    public RoomInventory() {
         inventory = new HashMap<>();
-        inventory.put("Single",5);
-        inventory.put("Double",3);
-        inventory.put("Suite",2);
+        inventory.put("Single", 5);
+        inventory.put("Double", 3);
+        inventory.put("Suite", 2);
     }
 
-    int getAvailability(String type){
+    public int getAvailability(String type) {
         return inventory.get(type);
+    }
+
+    public void updateAvailability(String type, int count) {
+        inventory.put(type, count);
     }
 
 }
