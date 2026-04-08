@@ -1,65 +1,74 @@
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
-// Custom Exception for Booking Errors
-class InvalidBookingException extends Exception {
-    public InvalidBookingException(String message) {
-        super(message);
-    }
-}
-
+/**
+ * Use Case 10: Booking Cancellation & Inventory Rollback
+ * Goal: Enable safe cancellation of confirmed bookings by reversing system state.
+ */
 public class BookMyStay {
-    // Inventory management using a Map
-    private static Map<String, Integer> roomInventory = new HashMap<>();
 
-    static {
-        // Initializing inventory
-        roomInventory.put("Standard", 5);
-        roomInventory.put("Deluxe", 3);
-        roomInventory.put("Suite", 2);
-    }
+    // Inventory and Booking state
+    private static int availableRooms = 5;
+    private static Map<String, String> activeBookings = new HashMap<>();
+
+    // Stack to track released room IDs for LIFO rollback logic
+    private static Stack<String> cancelledRoomsRollback = new Stack<>();
 
     public static void main(String[] args) {
-        System.out.println("--- Welcome to Book My Stay App ---");
+        System.out.println("--- Hotel Booking System: Use Case 10 ---");
 
-        // Test Cases: Valid and Invalid Scenarios
-        processBooking("Alice", "Deluxe", 2);  // Valid
-        processBooking("Bob", "Penthouse", 1); // Invalid Room Type
-        processBooking("Charlie", "Suite", 5); // Insufficient Inventory
-        processBooking("Dave", "Standard", 3); // Valid
+        // 1. Setup initial state (Creating some bookings)
+        processBooking("B001", "Room_101");
+        processBooking("B002", "Room_102");
+        displayStatus();
 
-        System.out.println("\nFinal Inventory State: " + roomInventory);
+        // 2. Perform Cancellations (State Reversal)
+        cancelBooking("B002"); // Most recent
+        cancelBooking("B001");
+
+        // 3. Attempting to cancel a non-existent booking (Validation)
+        cancelBooking("B003");
+
+        displayStatus();
+
+        System.out.println("\nRollback History (LIFO Order): " + cancelledRoomsRollback);
     }
 
     /**
-     * Core booking logic with validation and error handling
+     * Simulates the initial booking process.
      */
-    public static void processBooking(String guestName, String roomType, int quantity) {
-        try {
-            System.out.println("\nProcessing booking for: " + guestName + " (" + quantity + " " + roomType + ")");
-
-            // 1. Validate Room Type (Fail-Fast)
-            if (!roomInventory.containsKey(roomType)) {
-                throw new InvalidBookingException("Error: Room type '" + roomType + "' does not exist.");
-            }
-
-            // 2. Validate Inventory Levels
-            int availableRooms = roomInventory.get(roomType);
-            if (quantity > availableRooms) {
-                throw new InvalidBookingException("Error: Insufficient inventory for " + roomType +
-                        ". Requested: " + quantity + ", Available: " + availableRooms);
-            }
-
-            // 3. Guard System State: Perform update only after all validations pass
-            roomInventory.put(roomType, availableRooms - quantity);
-
-            System.out.println("Booking Successful! " + quantity + " " + roomType + " room(s) reserved for " + guestName + ".");
-
-        } catch (InvalidBookingException e) {
-            // 4. Graceful Failure Handling
-            System.err.println("Booking Failed: " + e.getMessage());
-        } catch (Exception e) {
-            System.err.println("An unexpected error occurred: " + e.getMessage());
+    private static void processBooking(String bookingId, String roomId) {
+        if (availableRooms > 0) {
+            activeBookings.put(bookingId, roomId);
+            availableRooms--;
+            System.out.println("Booking Confirmed: " + bookingId + " for " + roomId);
         }
+    }
+
+    /**
+     * Use Case 10 Logic: Validates, rolls back inventory, and updates state.
+     */
+    private static void cancelBooking(String bookingId) {
+        System.out.println("\nInitiating cancellation for: " + bookingId);
+
+        // Validation: Ensure the reservation exists
+        if (!activeBookings.containsKey(bookingId)) {
+            System.out.println("Error: Cancellation failed. Booking ID " + bookingId + " not found.");
+            return;
+        }
+
+        // State Reversal & LIFO Rollback
+        String roomId = activeBookings.remove(bookingId); // Remove from active bookings
+        cancelledRoomsRollback.push(roomId);           // Record in Stack for rollback tracking
+        availableRooms++;                              // Increment Inventory
+
+        System.out.println("Success: " + roomId + " has been released back to the pool.");
+        System.out.println("Inventory restored. Current available: " + availableRooms);
+    }
+
+    private static void displayStatus() {
+        System.out.println("\n--- Current System State ---");
+        System.out.println("Available Inventory: " + availableRooms);
+        System.out.println("Active Bookings: " + activeBookings);
+        System.out.println("----------------------------");
     }
 }
