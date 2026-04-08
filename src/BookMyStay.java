@@ -1,91 +1,65 @@
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
-// Model class to represent a Reservation
-class Reservation {
-    private String bookingId;
-    private String guestName;
-    private String roomType;
-    private double price;
-
-    public Reservation(String bookingId, String guestName, String roomType, double price) {
-        this.bookingId = bookingId;
-        this.guestName = guestName;
-        this.roomType = roomType;
-        this.price = price;
-    }
-
-    @Override
-    public String toString() {
-        return String.format("ID: %s | Guest: %s | Room: %s | Price: $%.2f",
-                bookingId, guestName, roomType, price);
-    }
-
-    public double getPrice() {
-        return price;
+// Custom Exception for Booking Errors
+class InvalidBookingException extends Exception {
+    public InvalidBookingException(String message) {
+        super(message);
     }
 }
 
-// Service to handle historical data storage
-class BookingHistory {
-    private List<Reservation> history = new ArrayList<>();
+public class BookMyStay {
+    // Inventory management using a Map
+    private static Map<String, Integer> roomInventory = new HashMap<>();
 
-    // Adds confirmed reservation (Preserves insertion order)
-    public void addRecord(Reservation reservation) {
-        history.add(reservation);
+    static {
+        // Initializing inventory
+        roomInventory.put("Standard", 5);
+        roomInventory.put("Deluxe", 3);
+        roomInventory.put("Suite", 2);
     }
 
-    // Returns a copy of records to ensure reporting doesn't modify original data
-    public List<Reservation> getAllRecords() {
-        return new ArrayList<>(history);
-    }
-}
-
-// Service to generate reports (Separation of concerns)
-class BookingReportService {
-    public void generateSummaryReport(List<Reservation> records) {
-        System.out.println("\n--- Booking Summary Report ---");
-        double totalRevenue = 0;
-
-        if (records.isEmpty()) {
-            System.out.println("No records found.");
-            return;
-        }
-
-        for (Reservation res : records) {
-            System.out.println(res);
-            totalRevenue += res.getPrice();
-        }
-
-        System.out.println("------------------------------");
-        System.out.println("Total Bookings: " + records.size());
-        System.out.println("Total Revenue: $" + String.format("%.2f", totalRevenue));
-        System.out.println("------------------------------\n");
-    }
-}
-
-// Main Class
-public class bookmystay {
     public static void main(String[] args) {
-        // Initialize services
-        BookingHistory history = new BookingHistory();
-        BookingReportService reportService = new BookingReportService();
+        System.out.println("--- Welcome to Book My Stay App ---");
 
-        System.out.println("System: Processing bookings...");
+        // Test Cases: Valid and Invalid Scenarios
+        processBooking("Alice", "Deluxe", 2);  // Valid
+        processBooking("Bob", "Penthouse", 1); // Invalid Room Type
+        processBooking("Charlie", "Suite", 5); // Insufficient Inventory
+        processBooking("Dave", "Standard", 3); // Valid
 
-        // Simulate successful confirmations (Flow step 1 & 2)
-        Reservation res1 = new Reservation("BK001", "Alice Smith", "Deluxe", 150.00);
-        history.addRecord(res1);
+        System.out.println("\nFinal Inventory State: " + roomInventory);
+    }
 
-        Reservation res2 = new Reservation("BK002", "Bob Jones", "Standard", 100.00);
-        history.addRecord(res2);
+    /**
+     * Core booking logic with validation and error handling
+     */
+    public static void processBooking(String guestName, String roomType, int quantity) {
+        try {
+            System.out.println("\nProcessing booking for: " + guestName + " (" + quantity + " " + roomType + ")");
 
-        Reservation res3 = new Reservation("BK003", "Charlie Brown", "Suite", 300.00);
-        history.addRecord(res3);
+            // 1. Validate Room Type (Fail-Fast)
+            if (!roomInventory.containsKey(roomType)) {
+                throw new InvalidBookingException("Error: Room type '" + roomType + "' does not exist.");
+            }
 
-        // Admin requests reports (Flow step 4 & 5)
-        System.out.println("Admin: Requesting historical report...");
-        List<Reservation> records = history.getAllRecords();
-        reportService.generateSummaryReport(records);
+            // 2. Validate Inventory Levels
+            int availableRooms = roomInventory.get(roomType);
+            if (quantity > availableRooms) {
+                throw new InvalidBookingException("Error: Insufficient inventory for " + roomType +
+                        ". Requested: " + quantity + ", Available: " + availableRooms);
+            }
+
+            // 3. Guard System State: Perform update only after all validations pass
+            roomInventory.put(roomType, availableRooms - quantity);
+
+            System.out.println("Booking Successful! " + quantity + " " + roomType + " room(s) reserved for " + guestName + ".");
+
+        } catch (InvalidBookingException e) {
+            // 4. Graceful Failure Handling
+            System.err.println("Booking Failed: " + e.getMessage());
+        } catch (Exception e) {
+            System.err.println("An unexpected error occurred: " + e.getMessage());
+        }
     }
 }
